@@ -129,8 +129,12 @@ function parseToolCalls() {
 function serveStatic(res, filePath, contentType) {
   try {
     let content = fs.readFileSync(filePath, 'utf8');
-    // Template the agent name
+    // Template the agent name and icon
     content = content.replace(/\{\{AGENT_NAME\}\}/g, AGENT_NAME);
+    // Extract first emoji/character for favicon
+    const iconMatch = AGENT_NAME.match(/\p{Emoji}/u);
+    const agentIcon = iconMatch ? iconMatch[0] : '🔧';
+    content = content.replace(/\{\{AGENT_ICON\}\}/g, agentIcon);
     res.writeHead(200, { 'Content-Type': contentType });
     res.end(content);
   } catch (e) {
