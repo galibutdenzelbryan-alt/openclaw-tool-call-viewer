@@ -712,20 +712,38 @@
     }
 
     function copyText(text) {
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
-      } else {
-        // Fallback for non-HTTPS (LAN access)
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        showToast('Copied to clipboard!');
+      // Try modern API first
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text)
+          .then(() => showToast('Copied to clipboard!'))
+          .catch(() => fallbackCopy(text));
+        return;
       }
+      fallbackCopy(text);
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      
+      // iOS needs special handling
+      const range = document.createRange();
+      range.selectNodeContents(ta);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      ta.setSelectionRange(0, text.length);
+      
+      try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard!');
+      } catch (e) {
+        showToast('Copy failed — try manually');
+      }
+      document.body.removeChild(ta);
     }
 
     function showToast(msg) {
