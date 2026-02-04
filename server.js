@@ -106,10 +106,20 @@ function parseToolCalls() {
           if (obj.message?.content && Array.isArray(obj.message.content)) {
             for (const item of obj.message.content) {
               if (item.type === 'toolCall') {
+                // Truncate large argument values
+                let args = item.arguments;
+                if (args) {
+                  args = Object.fromEntries(
+                    Object.entries(args).map(([k, v]) => {
+                      if (typeof v === 'string' && v.length > 500) return [k, v.slice(0, 500) + '…'];
+                      return [k, v];
+                    })
+                  );
+                }
                 toolCalls.push({
                   id: item.id,
                   name: item.name,
-                  arguments: item.arguments,
+                  arguments: args,
                   timestamp: obj.timestamp,
                   sessionId: sessionId,
                   model: obj.message?.model,
@@ -148,8 +158,15 @@ const server = http.createServer((req, res) => {
 
   if (req.url === '/' || req.url === '/index.html') {
     serveStatic(res, path.join(__dirname, 'index.html'), 'text/html');
-  } else if (req.url === '/api/tools') {
-    const toolCalls = parseToolCalls();
+  } else if (req.url.startsWith('/api/tools')) {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const days = parseInt(url.searchParams.get('days') || '7', 10);
+    const allData = url.searchParams.get('all') === 'true';
+    let toolCalls = parseToolCalls();
+    if (!allData && days > 0) {
+      const cutoff = new Date(Date.now() - days * 86400000);
+      toolCalls = toolCalls.filter(c => new Date(c.timestamp) >= cutoff);
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(toolCalls));
   } else if (req.url === '/api/stats') {

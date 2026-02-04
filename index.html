@@ -556,7 +556,16 @@
 
     async function loadData() {
       try {
-        const res = await fetch('/api/tools');
+        const dateFrom = document.getElementById('date-from').value;
+        const dateTo = document.getElementById('date-to').value;
+        let apiUrl = '/api/tools';
+        if (dateFrom || dateTo) {
+          const from = dateFrom ? new Date(dateFrom) : new Date(Date.now() - 7 * 86400000);
+          const to = dateTo ? new Date(dateTo + 'T23:59:59') : new Date();
+          const days = Math.ceil((to - from) / 86400000) + 1;
+          apiUrl = `/api/tools?days=${days}`;
+        }
+        const res = await fetch(apiUrl);
         allCalls = await res.json();
         
         // Calculate stats
@@ -800,7 +809,7 @@
       currentPage = 1;
       document.querySelectorAll('#session-dropdown-items input[type="checkbox"]').forEach(cb => cb.checked = true);
       updateSessionLabel();
-      applyFilters();
+      debouncedApplyFilters();
     }
 
     function selectNoSessions() {
@@ -809,7 +818,7 @@
       currentPage = 1;
       document.querySelectorAll('#session-dropdown-items input[type="checkbox"]').forEach(cb => cb.checked = false);
       updateSessionLabel();
-      applyFilters();
+      debouncedApplyFilters();
     }
 
     function updateSessionLabel() {
@@ -849,6 +858,12 @@
       }
     });
 
+    let filterTimeout = null;
+    function debouncedApplyFilters() {
+      if (filterTimeout) clearTimeout(filterTimeout);
+      filterTimeout = setTimeout(applyFilters, 50);
+    }
+
     function sortBy(field) {
       const current = document.getElementById('sort-field-hidden').value;
       if (current === field) {
@@ -867,14 +882,18 @@
       const dateTo = document.getElementById('date-to').value;
       
       filteredCalls = allCalls.filter(call => {
-        // If none selected explicitly, show nothing
-        if (!allTypesSelected && selectedTypes.size === 0) return false;
-        // If some selected, filter by them
-        if (selectedTypes.size > 0 && !selectedTypes.has(call.name)) return false;
-        if (!allModelsSelected && selectedModels.size === 0) return false;
-        if (selectedModels.size > 0 && !selectedModels.has(call.model || 'unknown')) return false;
-        if (!allSessionsSelected && selectedSessions.size === 0) return false;
-        if (selectedSessions.size > 0 && !selectedSessions.has(call.sessionId || 'unknown')) return false;
+        if (!allTypesSelected) {
+          if (selectedTypes.size === 0) return false;
+          if (!selectedTypes.has(call.name)) return false;
+        }
+        if (!allModelsSelected) {
+          if (selectedModels.size === 0) return false;
+          if (!selectedModels.has(call.model || 'unknown')) return false;
+        }
+        if (!allSessionsSelected) {
+          if (selectedSessions.size === 0) return false;
+          if (!selectedSessions.has(call.sessionId || 'unknown')) return false;
+        }
         
         // Date filtering
         if (dateFrom || dateTo) {
