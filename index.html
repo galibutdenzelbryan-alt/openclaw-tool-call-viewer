@@ -372,7 +372,7 @@
     </div>
     <div class="auto-refresh">
       <label class="refresh-toggle">
-        <input type="checkbox" id="auto-refresh-toggle" onchange="toggleAutoRefresh()">
+        <input type="checkbox" id="auto-refresh-toggle" onchange="toggleAutoRefresh()" checked>
         <span class="refresh-label">Auto-refresh</span>
         <span class="refresh-indicator" id="refresh-indicator"></span>
       </label>
@@ -711,6 +711,10 @@
 
     // Load data on start
     loadData();
+    
+    // Enable auto-refresh by default
+    document.getElementById('refresh-indicator').classList.add('active');
+    autoRefreshInterval = setInterval(refreshData, 10000);
   </script>
 </body>
 </html>
