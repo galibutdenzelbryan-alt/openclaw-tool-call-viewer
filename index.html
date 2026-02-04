@@ -556,16 +556,7 @@
 
     async function loadData() {
       try {
-        const dateFrom = document.getElementById('date-from').value;
-        const dateTo = document.getElementById('date-to').value;
-        let apiUrl = '/api/tools';
-        if (dateFrom || dateTo) {
-          const from = dateFrom ? new Date(dateFrom) : new Date(Date.now() - 7 * 86400000);
-          const to = dateTo ? new Date(dateTo + 'T23:59:59') : new Date();
-          const days = Math.ceil((to - from) / 86400000) + 1;
-          apiUrl = `/api/tools?days=${days}`;
-        }
-        const res = await fetch(apiUrl);
+        const res = await fetch('/api/tools?all=true');
         allCalls = await res.json();
         
         // Calculate stats
@@ -594,11 +585,7 @@
         renderModelFilters();
         renderSessionFilters();
         
-        // Set default date range (last 7 days)
-        const today = new Date();
-        const weekAgo = new Date(today - 7 * 24 * 60 * 60 * 1000);
-        document.getElementById('date-to').value = today.toISOString().split('T')[0];
-        document.getElementById('date-from').value = weekAgo.toISOString().split('T')[0];
+        // Date range empty by default = show all
         
         renderTypeFilters();
         applyFilters();
@@ -1189,7 +1176,7 @@
 
     async function refreshData() {
       try {
-        const res = await fetch('/api/tools');
+        const res = await fetch('/api/tools?all=true');
         const newCalls = await res.json();
         
         // Check if there are new calls
