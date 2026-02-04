@@ -160,7 +160,6 @@
     .arguments {
       font-family: 'SF Mono', Monaco, monospace;
       font-size: 12px;
-      max-width: 500px;
       max-height: 100px;
       overflow: auto;
       white-space: pre-wrap;
@@ -168,6 +167,7 @@
       background: #0d1117;
       padding: 8px;
       border-radius: 4px;
+      width: 100%;
     }
     .model {
       font-size: 11px;
@@ -708,9 +708,24 @@
         sessionId: call.sessionId
       };
       const text = JSON.stringify(data, null, 2);
-      navigator.clipboard.writeText(text).then(() => {
+      copyText(text);
+    }
+
+    function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
+      } else {
+        // Fallback for non-HTTPS (LAN access)
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
         showToast('Copied to clipboard!');
-      });
+      }
     }
 
     function showToast(msg) {
