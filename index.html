@@ -88,12 +88,12 @@
       overflow: hidden;
       table-layout: fixed;
     }
-    col.col-tool { width: 100px; }
-    col.col-args { }
-    col.col-time { width: 90px; }
+    col.col-tool { width: 120px; }
+    col.col-args { width: 40%; }
+    col.col-time { width: 120px; }
     col.col-model { width: 130px; }
     col.col-session { width: 130px; }
-    col.col-copy { width: 50px; }
+    col.col-copy { width: 55px; }
     th {
       background: #21262d;
       padding: 12px 15px;
@@ -161,7 +161,6 @@
     .timestamp {
       color: #8b949e;
       font-size: 12px;
-      white-space: nowrap;
     }
     .session-id {
       font-family: monospace;
@@ -686,7 +685,7 @@
       
       for (let i = 0; i < pageCalls.length; i++) {
         const call = pageCalls[i];
-        const fullTime = new Date(call.timestamp).toLocaleString();
+        const fullTime = new Date(call.timestamp).toLocaleString().replace(/"/g, '&quot;');
         const timeStr = relativeTime(call.timestamp);
         const args = call.arguments ? JSON.stringify(call.arguments, null, 2) : '-';
         const rowIndex = start + i;
