@@ -24,6 +24,18 @@
       color: #58a6ff;
       margin: 0;
     }
+    .header-totals {
+      display: flex;
+      gap: 20px;
+    }
+    .header-stat {
+      color: #8b949e;
+      font-size: 14px;
+    }
+    .header-stat span {
+      color: #58a6ff;
+      font-weight: bold;
+    }
     .export-btn {
       background: #238636;
       border: 1px solid #2ea043;
@@ -442,20 +454,25 @@
 <body>
   <div class="header">
     <h1>{{AGENT_NAME}} Tool Call Viewer</h1>
+    <div class="header-totals">
+      <span class="header-stat"><span id="total-calls">-</span> calls</span>
+      <span class="header-stat"><span id="unique-types">-</span> tools</span>
+      <span class="header-stat"><span id="sessions-count">-</span> sessions</span>
+    </div>
     <button class="export-btn" onclick="exportData()">📥 Export</button>
   </div>
 
   <div class="stats" id="stats">
     <div class="stat-card">
-      <div class="value" id="total-calls">-</div>
-      <div class="label">Total Calls</div>
+      <div class="value" id="filtered-calls">-</div>
+      <div class="label">Calls</div>
     </div>
     <div class="stat-card">
-      <div class="value" id="unique-types">-</div>
-      <div class="label">Tool Types</div>
+      <div class="value" id="filtered-types">-</div>
+      <div class="label">Tools</div>
     </div>
     <div class="stat-card">
-      <div class="value" id="sessions-count">-</div>
+      <div class="value" id="filtered-sessions">-</div>
       <div class="label">Sessions</div>
     </div>
     <div class="stat-card search-card">
@@ -976,6 +993,13 @@
         }
         return sortOrder === 'asc' ? cmp : -cmp;
       });
+      
+      // Update filtered stat cards
+      const filteredToolSet = new Set(filteredCalls.map(c => c.name));
+      const filteredSessionSet = new Set(filteredCalls.map(c => c.sessionId));
+      document.getElementById('filtered-calls').textContent = filteredCalls.length.toLocaleString();
+      document.getElementById('filtered-types').textContent = filteredToolSet.size;
+      document.getElementById('filtered-sessions').textContent = filteredSessionSet.size;
       
       render();
     }

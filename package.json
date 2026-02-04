@@ -6,6 +6,6 @@
   "scripts": {
     "start": "node server.js"
   },
-  "author": "TARS",
+  "author": "VAC",
   "license": "MIT"
 }
