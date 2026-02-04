@@ -1,6 +1,6 @@
 # Tool Call Viewer
 
-Web UI for browsing OpenClaw session tool call history.
+A lightweight web UI for browsing [OpenClaw](https://github.com/openclaw/openclaw) session tool call history. Zero dependencies — just Node.js.
 
 ![Screenshot](screenshot.png)
 
@@ -11,12 +11,16 @@ Web UI for browsing OpenClaw session tool call history.
 ## Features
 
 - **Dynamic parsing** of JSONL session files
-- **Filter by:** date range, tool type (multi-select), session, text search
-- **Sort by:** date, tool name, session, model (with toggle direction)
-- **Copy rows** as JSON (double-click or 📋 button)
-- **Auto-refresh** — poll for new calls every 10 seconds
-- **Network accessible** — bind to `0.0.0.0` for LAN access
-- **Customizable** — set your agent name via CLI or env var
+- **Filter by:** tool type, model, session (multi-select with search), date range, text search
+- **Sort by:** clicking column headers — date, tool name, model, session
+- **Cross-filtered counts** — dropdown counts update based on other active filters
+- **Copy** — double-click arguments to copy, or 📋 button for full row JSON
+- **Auto-refresh** — polls for new calls every 10 seconds (enabled by default)
+- **Export** — download filtered results as JSON
+- **Relative timestamps** — "2m ago" with full date on hover
+- **Customizable** — set your agent name/emoji via CLI or env var
+- **Mobile responsive** — works on phones and tablets
+- **LAN accessible** — binds to `0.0.0.0`
 
 ## Requirements
 
@@ -29,7 +33,7 @@ Web UI for browsing OpenClaw session tool call history.
 brew install node
 ```
 
-**macOS/Linux (nvm - recommended):**
+**macOS/Linux (nvm):**
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 nvm install --lts
@@ -42,17 +46,18 @@ sudo apt-get install -y nodejs
 ```
 
 **Windows:**
+
 Download installer from [nodejs.org](https://nodejs.org/)
 
 ## Installation
 
 ```bash
-git clone https://github.com/youruser/toolcallviewer.git
+git clone https://github.com/VACInc/toolcallviewer.git
 cd toolcallviewer
 node server.js
 ```
 
-No npm install needed — zero dependencies, just Node.js.
+No `npm install` needed — zero dependencies.
 
 ## Usage
 
@@ -66,20 +71,20 @@ node server.js --port 8080
 # Custom sessions directory
 node server.js --sessions /path/to/sessions
 
-# Custom agent name (shows in title)
-node server.js --name "🔳 TARS"
+# Custom agent name (shows in title + favicon)
+node server.js --name "🤖 Jarvis"
 
 # Or via environment variable
 OPENCLAW_AGENT_NAME="🤖 Jarvis" node server.js
 
-# Demo mode (fake data for screenshots)
+# Demo mode (fake data, safe for screenshots)
 node server.js --demo
 
 # Show help
 node server.js --help
 ```
 
-Then open http://localhost:3847 (or your machine's IP for LAN access).
+Then open http://localhost:3847 (or your machine's LAN IP).
 
 ## CLI Options
 
@@ -87,7 +92,7 @@ Then open http://localhost:3847 (or your machine's IP for LAN access).
 |--------|-------|-------------|---------|
 | `--port` | `-p` | Port to listen on | `3847` |
 | `--sessions` | `-s` | Path to sessions directory | `~/.openclaw/agents/main/sessions` |
-| `--name` | `-n` | Agent name for title | `OpenClaw` (or `OPENCLAW_AGENT_NAME` env) |
+| `--name` | `-n` | Agent name for title + favicon | `OpenClaw` (or `OPENCLAW_AGENT_NAME` env) |
 | `--demo` | | Run with fake demo data | |
 | `--help` | `-h` | Show help message | |
 
@@ -96,7 +101,8 @@ Then open http://localhost:3847 (or your machine's IP for LAN access).
 | Endpoint | Description |
 |----------|-------------|
 | `GET /` | Web UI |
-| `GET /api/tools` | All tool calls as JSON array |
+| `GET /api/tools?all=true` | All tool calls as JSON |
+| `GET /api/tools?days=7` | Tool calls from last N days |
 | `GET /api/stats` | Aggregated stats by tool type |
 
 ## Running as a Service
@@ -124,7 +130,6 @@ Create `~/Library/LaunchAgents/com.toolcallviewer.plist`:
 </plist>
 ```
 
-Then:
 ```bash
 launchctl load ~/Library/LaunchAgents/com.toolcallviewer.plist
 ```
@@ -144,10 +149,8 @@ Restart=always
 WantedBy=default.target
 ```
 
-Then:
 ```bash
-systemctl --user enable toolcallviewer
-systemctl --user start toolcallviewer
+systemctl --user enable --now toolcallviewer
 ```
 
 ## License
