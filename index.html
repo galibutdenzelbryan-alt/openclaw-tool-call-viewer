@@ -496,7 +496,7 @@
         <span id="session-dropdown-label">Sessions</span>
       </button>
       <div class="type-dropdown-content" id="session-dropdown-content">
-        <div class="dropdown-search"><input type="text" placeholder="Search sessions..." oninput="filterDropdown('session', this.value)" onclick="event.stopPropagation()"></div>
+        <div class="dropdown-search"><input type="text" placeholder="Search sessions..." oninput="renderSessionFilters(this.value)" onclick="event.stopPropagation()"></div>
         <div class="type-dropdown-actions">
           <button onclick="selectAllSessions()">All</button>
           <button onclick="selectNoSessions()">None</button>
@@ -744,25 +744,37 @@
     }
 
     // Session filter functions
-    function renderSessionFilters() {
+    const SESSION_RENDER_LIMIT = 50;
+    let sortedSessions = [];
+
+    function renderSessionFilters(filter = '') {
       const container = document.getElementById('session-dropdown-items');
-      const sorted = Object.entries(sessionStats).sort((a, b) => b[1] - a[1]);
       
-      if (allSessionsSelected && selectedSessions.size === 0) {
-        sorted.forEach(([name]) => selectedSessions.add(name));
+      if (sortedSessions.length === 0) {
+        sortedSessions = Object.entries(sessionStats).sort((a, b) => b[1] - a[1]);
       }
       
-      container.innerHTML = '';
-      for (const [name, count] of sorted) {
+      if (allSessionsSelected && selectedSessions.size === 0) {
+        sortedSessions.forEach(([name]) => selectedSessions.add(name));
+      }
+      
+      const q = filter.toLowerCase();
+      const filtered = q ? sortedSessions.filter(([name]) => name.toLowerCase().includes(q)) : sortedSessions;
+      const visible = filtered.slice(0, SESSION_RENDER_LIMIT);
+      
+      const html = [];
+      for (const [name, count] of visible) {
         const checked = selectedSessions.has(name) ? 'checked' : '';
-        container.innerHTML += `
-          <label class="type-dropdown-item">
+        html.push(`<label class="type-dropdown-item">
             <input type="checkbox" value="${name}" ${checked} onchange="toggleSession('${name}')">
             <span class="name" style="font-family:monospace;font-size:11px">${name.slice(0, 8)}...</span>
             <span class="count">${count}</span>
-          </label>
-        `;
+          </label>`);
       }
+      if (filtered.length > SESSION_RENDER_LIMIT) {
+        html.push(`<div style="padding:8px 12px;color:#8b949e;font-size:11px">+${filtered.length - SESSION_RENDER_LIMIT} more — use search to filter</div>`);
+      }
+      container.innerHTML = html.join('');
       updateSessionLabel();
     }
 
@@ -786,7 +798,8 @@
       Object.keys(sessionStats).forEach(name => selectedSessions.add(name));
       allSessionsSelected = true;
       currentPage = 1;
-      renderSessionFilters();
+      document.querySelectorAll('#session-dropdown-items input[type="checkbox"]').forEach(cb => cb.checked = true);
+      updateSessionLabel();
       applyFilters();
     }
 
@@ -794,7 +807,8 @@
       selectedSessions.clear();
       allSessionsSelected = false;
       currentPage = 1;
-      renderSessionFilters();
+      document.querySelectorAll('#session-dropdown-items input[type="checkbox"]').forEach(cb => cb.checked = false);
+      updateSessionLabel();
       applyFilters();
     }
 
