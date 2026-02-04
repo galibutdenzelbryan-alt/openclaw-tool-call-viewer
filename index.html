@@ -636,7 +636,7 @@
       if (selectedTypes.size === 0) {
         label.textContent = 'No Tools Selected';
       } else if (selectedTypes.size === total) {
-        label.textContent = 'All Tools';
+        label.textContent = 'Tools';
       } else if (selectedTypes.size <= 2) {
         label.textContent = Array.from(selectedTypes).join(', ');
       } else {
@@ -705,7 +705,7 @@
       if (selectedModels.size === 0) {
         label.textContent = 'No Models Selected';
       } else if (selectedModels.size === total) {
-        label.textContent = 'All Models';
+        label.textContent = 'Models';
       } else if (selectedModels.size === 1) {
         label.textContent = Array.from(selectedModels)[0];
       } else {
