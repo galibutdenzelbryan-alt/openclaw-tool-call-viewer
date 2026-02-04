@@ -247,6 +247,32 @@
       font-size: 12px;
     }
     .type-dropdown-actions button:hover { background: #30363d; color: #c9d1d9; }
+    .sort-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .sort-order-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .sort-order-btn:hover { border-color: #58a6ff; }
+    .search-card {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+    }
+    .search-card input {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      width: 200px;
+    }
   </style>
 </head>
 <body>
@@ -266,12 +292,23 @@
       <div class="value" id="sessions-count">-</div>
       <div class="label">Sessions</div>
     </div>
+    <div class="stat-card search-card">
+      <input type="text" id="search" placeholder="Search tools or args...">
+    </div>
   </div>
 
   <div class="controls">
-    <div>
-      <label>Search:</label>
-      <input type="text" id="search" placeholder="Filter by tool name or args...">
+    <div class="type-dropdown" id="type-dropdown">
+      <button class="type-dropdown-btn" onclick="toggleTypeDropdown()">
+        <span id="type-dropdown-label">All Tools</span>
+      </button>
+      <div class="type-dropdown-content" id="type-dropdown-content">
+        <div class="type-dropdown-actions">
+          <button onclick="selectAllTypes()">All</button>
+          <button onclick="selectNoTypes()">None</button>
+        </div>
+        <div id="type-dropdown-items"></div>
+      </div>
     </div>
     <div>
       <label>Session:</label>
@@ -287,21 +324,15 @@
       <label>To:</label>
       <input type="date" id="date-to">
     </div>
-    <div>
-      <label>Sort by:</label>
+    <div class="sort-group">
+      <label>Sort:</label>
       <select id="sort-field">
         <option value="timestamp">Date</option>
         <option value="name">Tool Name</option>
         <option value="sessionId">Session</option>
         <option value="model">Model</option>
       </select>
-    </div>
-    <div>
-      <label>Order:</label>
-      <select id="sort-order">
-        <option value="desc">Newest First</option>
-        <option value="asc">Oldest First</option>
-      </select>
+      <button class="sort-order-btn" id="sort-order-btn" onclick="toggleSortOrder()">↓</button>
     </div>
     <div>
       <label>Per page:</label>
@@ -311,19 +342,6 @@
         <option value="250">250</option>
         <option value="500">500</option>
       </select>
-    </div>
-  </div>
-
-  <div class="type-dropdown" id="type-dropdown">
-    <button class="type-dropdown-btn" onclick="toggleTypeDropdown()">
-      <span id="type-dropdown-label">All Tools</span>
-    </button>
-    <div class="type-dropdown-content" id="type-dropdown-content">
-      <div class="type-dropdown-actions">
-        <button onclick="selectAllTypes()">All</button>
-        <button onclick="selectNoTypes()">None</button>
-      </div>
-      <div id="type-dropdown-items"></div>
     </div>
   </div>
 
@@ -339,6 +357,8 @@
     let filteredCalls = [];
     let currentPage = 1;
     let selectedTypes = new Set();
+    let allTypesSelected = true;
+    let sortOrder = 'desc';
     let stats = {};
     let sessions = [];
 
@@ -386,8 +406,8 @@
       const container = document.getElementById('type-dropdown-items');
       const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
       
-      // If no selection, select all by default
-      if (selectedTypes.size === 0) {
+      // If initial load (allTypesSelected true and empty), select all
+      if (allTypesSelected && selectedTypes.size === 0) {
         sorted.forEach(([name]) => selectedTypes.add(name));
       }
       
@@ -416,6 +436,7 @@
       } else {
         selectedTypes.add(name);
       }
+      allTypesSelected = selectedTypes.size === Object.keys(stats).length;
       currentPage = 1;
       updateTypeLabel();
       applyFilters();
@@ -423,6 +444,7 @@
     
     function selectAllTypes() {
       Object.keys(stats).forEach(name => selectedTypes.add(name));
+      allTypesSelected = true;
       currentPage = 1;
       renderTypeFilters();
       applyFilters();
@@ -430,8 +452,15 @@
     
     function selectNoTypes() {
       selectedTypes.clear();
+      allTypesSelected = false;
       currentPage = 1;
       renderTypeFilters();
+      applyFilters();
+    }
+    
+    function toggleSortOrder() {
+      sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      document.getElementById('sort-order-btn').textContent = sortOrder === 'desc' ? '↓' : '↑';
       applyFilters();
     }
     
@@ -459,12 +488,14 @@
     function applyFilters() {
       const search = document.getElementById('search').value.toLowerCase();
       const sortField = document.getElementById('sort-field').value;
-      const sortOrder = document.getElementById('sort-order').value;
       const sessionFilter = document.getElementById('session-filter').value;
       const dateFrom = document.getElementById('date-from').value;
       const dateTo = document.getElementById('date-to').value;
       
       filteredCalls = allCalls.filter(call => {
+        // If none selected explicitly, show nothing
+        if (!allTypesSelected && selectedTypes.size === 0) return false;
+        // If some selected, filter by them
         if (selectedTypes.size > 0 && !selectedTypes.has(call.name)) return false;
         if (sessionFilter && call.sessionId !== sessionFilter) return false;
         
@@ -590,7 +621,6 @@
     document.getElementById('date-from').addEventListener('change', () => { currentPage = 1; applyFilters(); });
     document.getElementById('date-to').addEventListener('change', () => { currentPage = 1; applyFilters(); });
     document.getElementById('sort-field').addEventListener('change', applyFilters);
-    document.getElementById('sort-order').addEventListener('change', applyFilters);
     document.getElementById('per-page').addEventListener('change', () => { currentPage = 1; render(); });
 
     // Load data on start
