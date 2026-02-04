@@ -1,11 +1,89 @@
+#!/usr/bin/env node
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const SESSIONS_DIR = path.join(process.env.HOME, '.openclaw/agents/main/sessions');
-const PORT = 3847;
+// Parse CLI arguments
+const args = process.argv.slice(2);
+let PORT = 3847;
+let SESSIONS_DIR = path.join(process.env.HOME, '.openclaw/agents/main/sessions');
+
+let DEMO_MODE = false;
+
+for (let i = 0; i < args.length; i++) {
+  if ((args[i] === '--port' || args[i] === '-p') && args[i + 1]) {
+    PORT = parseInt(args[i + 1], 10);
+    i++;
+  } else if ((args[i] === '--sessions' || args[i] === '-s') && args[i + 1]) {
+    SESSIONS_DIR = args[i + 1];
+    i++;
+  } else if (args[i] === '--demo') {
+    DEMO_MODE = true;
+  } else if (args[i] === '--help' || args[i] === '-h') {
+    console.log(`
+Tool Call Viewer - OpenClaw session tool call history
+
+Usage: node server.js [options]
+
+Options:
+  -p, --port <port>       Port to listen on (default: 3847)
+  -s, --sessions <path>   Path to sessions directory 
+                          (default: ~/.openclaw/agents/main/sessions)
+  -h, --help              Show this help message
+
+Examples:
+  node server.js
+  node server.js --port 8080
+  node server.js --sessions /path/to/sessions
+`);
+    process.exit(0);
+  }
+}
+
+function generateDemoData() {
+  const tools = ['exec', 'read', 'write', 'edit', 'web_search', 'web_fetch', 'browser', 'message', 'cron', 'memory_search'];
+  const models = ['claude-sonnet-4', 'claude-opus-4', 'gpt-4o', 'gemini-pro'];
+  const sessions = ['a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', 'c3d4e5f6-a7b8-9012-cdef-123456789012'];
+  
+  const demoCommands = [
+    { name: 'exec', args: { command: 'ls -la /home/user/projects' } },
+    { name: 'exec', args: { command: 'git status' } },
+    { name: 'exec', args: { command: 'npm run build' } },
+    { name: 'read', args: { path: '/home/user/config.json' } },
+    { name: 'write', args: { path: '/home/user/output.txt', content: 'Hello world' } },
+    { name: 'edit', args: { path: '/home/user/app.js', old_string: 'foo', new_string: 'bar' } },
+    { name: 'web_search', args: { query: 'nodejs best practices 2026' } },
+    { name: 'web_fetch', args: { url: 'https://example.com/api/data' } },
+    { name: 'browser', args: { action: 'snapshot', url: 'https://docs.example.com' } },
+    { name: 'message', args: { action: 'send', channel: 'discord', message: 'Task completed!' } },
+    { name: 'cron', args: { action: 'add', schedule: '0 9 * * *' } },
+    { name: 'memory_search', args: { query: 'project requirements' } },
+  ];
+  
+  const calls = [];
+  const now = Date.now();
+  
+  for (let i = 0; i < 500; i++) {
+    const cmd = demoCommands[Math.floor(Math.random() * demoCommands.length)];
+    calls.push({
+      id: `toolu_demo_${i.toString().padStart(5, '0')}`,
+      name: cmd.name,
+      arguments: cmd.args,
+      timestamp: new Date(now - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+      sessionId: sessions[Math.floor(Math.random() * sessions.length)],
+      model: models[Math.floor(Math.random() * models.length)],
+      provider: 'demo'
+    });
+  }
+  
+  return calls.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
 
 function parseToolCalls() {
+  if (DEMO_MODE) {
+    return generateDemoData();
+  }
+  
   const files = fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.jsonl'));
   const toolCalls = [];
 
@@ -78,5 +156,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Tool Viewer running at http://0.0.0.0:${PORT}`);
+  console.log(`Tool Call Viewer running at http://0.0.0.0:${PORT}`);
+  console.log(`Sessions directory: ${SESSIONS_DIR}`);
 });

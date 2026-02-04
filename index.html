@@ -273,6 +273,37 @@
       border: 1px solid #30363d;
       width: 200px;
     }
+    .auto-refresh {
+      margin-left: auto;
+    }
+    .refresh-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: #8b949e;
+      font-size: 0.9em;
+    }
+    .refresh-toggle input {
+      accent-color: #58a6ff;
+      width: 16px;
+      height: 16px;
+    }
+    .refresh-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #30363d;
+      transition: background 0.3s;
+    }
+    .refresh-indicator.active {
+      background: #3fb950;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
   </style>
 </head>
 <body>
@@ -343,6 +374,13 @@
         <option value="500">500</option>
       </select>
     </div>
+    <div class="auto-refresh">
+      <label class="refresh-toggle">
+        <input type="checkbox" id="auto-refresh-toggle" onchange="toggleAutoRefresh()">
+        <span class="refresh-label">Auto-refresh</span>
+        <span class="refresh-indicator" id="refresh-indicator"></span>
+      </label>
+    </div>
   </div>
 
   <div id="content">
@@ -361,6 +399,7 @@
     let sortOrder = 'desc';
     let stats = {};
     let sessions = [];
+    let autoRefreshInterval = null;
 
     async function loadData() {
       try {
@@ -613,6 +652,57 @@
       toast.textContent = msg;
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function toggleAutoRefresh() {
+      const enabled = document.getElementById('auto-refresh-toggle').checked;
+      const indicator = document.getElementById('refresh-indicator');
+      
+      if (enabled) {
+        indicator.classList.add('active');
+        autoRefreshInterval = setInterval(refreshData, 10000); // 10 seconds
+        showToast('Auto-refresh enabled (10s)');
+      } else {
+        indicator.classList.remove('active');
+        if (autoRefreshInterval) {
+          clearInterval(autoRefreshInterval);
+          autoRefreshInterval = null;
+        }
+        showToast('Auto-refresh disabled');
+      }
+    }
+
+    async function refreshData() {
+      try {
+        const res = await fetch('/api/tools');
+        const newCalls = await res.json();
+        
+        // Check if there are new calls
+        const newCount = newCalls.length - allCalls.length;
+        
+        allCalls = newCalls;
+        
+        // Recalculate stats
+        stats = {};
+        const sessionSet = new Set();
+        for (const call of allCalls) {
+          stats[call.name] = (stats[call.name] || 0) + 1;
+          sessionSet.add(call.sessionId);
+        }
+        sessions = Array.from(sessionSet).sort();
+        
+        document.getElementById('total-calls').textContent = allCalls.length.toLocaleString();
+        document.getElementById('unique-types').textContent = Object.keys(stats).length;
+        document.getElementById('sessions-count').textContent = sessions.length;
+        
+        applyFilters();
+        
+        if (newCount > 0) {
+          showToast(`+${newCount} new tool call${newCount > 1 ? 's' : ''}`);
+        }
+      } catch (e) {
+        console.error('Refresh failed:', e);
+      }
     }
 
     // Event listeners
