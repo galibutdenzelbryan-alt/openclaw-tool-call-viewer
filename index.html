@@ -301,6 +301,15 @@
       align-items: center;
       gap: 5px;
     }
+    .date-range {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .date-sep {
+      color: #8b949e;
+      font-size: 14px;
+    }
     .sort-order-btn {
       background: #21262d;
       border: 1px solid #30363d;
@@ -443,12 +452,10 @@
         <option value="">All Sessions</option>
       </select>
     </div>
-    <div>
-      <label>From:</label>
+    <div class="date-range">
+      <label>Date:</label>
       <input type="date" id="date-from">
-    </div>
-    <div>
-      <label>To:</label>
+      <span class="date-sep">–</span>
       <input type="date" id="date-to">
     </div>
     <div>
