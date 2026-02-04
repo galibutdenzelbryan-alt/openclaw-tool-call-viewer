@@ -168,7 +168,9 @@
       padding: 8px;
       border-radius: 4px;
       width: 100%;
+      cursor: pointer;
     }
+    .arguments:hover { border: 1px solid #30363d; }
     .model {
       font-size: 11px;
       color: #7ee787;
@@ -421,16 +423,6 @@
       <label>To:</label>
       <input type="date" id="date-to">
     </div>
-    <div class="sort-group">
-      <label>Sort:</label>
-      <select id="sort-field">
-        <option value="timestamp">Date</option>
-        <option value="name">Tool Name</option>
-        <option value="sessionId">Session</option>
-        <option value="model">Model</option>
-      </select>
-      <button class="sort-order-btn" id="sort-order-btn" onclick="toggleSortOrder()">↓</button>
-    </div>
     <div>
       <label>Per page:</label>
       <select id="per-page">
@@ -448,6 +440,8 @@
       </label>
     </div>
   </div>
+
+  <input type="hidden" id="sort-field-hidden" value="timestamp">
 
   <div id="content">
     <div class="loading">Loading tool calls...</div>
@@ -590,9 +584,20 @@
       }
     });
 
+    function sortBy(field) {
+      const current = document.getElementById('sort-field-hidden').value;
+      if (current === field) {
+        sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      } else {
+        document.getElementById('sort-field-hidden').value = field;
+        sortOrder = 'desc';
+      }
+      applyFilters();
+    }
+
     function applyFilters() {
       const search = document.getElementById('search').value.toLowerCase();
-      const sortField = document.getElementById('sort-field').value;
+      const sortField = document.getElementById('sort-field-hidden').value;
       const sessionFilter = document.getElementById('session-filter').value;
       const dateFrom = document.getElementById('date-from').value;
       const dateTo = document.getElementById('date-to').value;
@@ -641,15 +646,18 @@
       const start = (currentPage - 1) * perPage;
       const pageCalls = filteredCalls.slice(start, start + perPage);
       
+      const sortField = document.getElementById('sort-field-hidden').value;
+      const arrow = sortOrder === 'desc' ? ' ↓' : ' ↑';
+      
       let html = `
         <table>
           <thead>
             <tr>
-              <th>Tool</th>
+              <th onclick="sortBy('name')" class="${sortField === 'name' ? 'sorted' : ''}">Tool${sortField === 'name' ? arrow : ''}</th>
               <th>Arguments</th>
-              <th>Time</th>
-              <th>Model</th>
-              <th>Session</th>
+              <th onclick="sortBy('timestamp')" class="${sortField === 'timestamp' ? 'sorted' : ''}">Time${sortField === 'timestamp' ? arrow : ''}</th>
+              <th onclick="sortBy('model')" class="${sortField === 'model' ? 'sorted' : ''}">Model${sortField === 'model' ? arrow : ''}</th>
+              <th onclick="sortBy('sessionId')" class="${sortField === 'sessionId' ? 'sorted' : ''}">Session${sortField === 'sessionId' ? arrow : ''}</th>
               <th>Copy</th>
             </tr>
           </thead>
@@ -666,7 +674,7 @@
         html += `
           <tr ondblclick="copyRow(${rowIndex})" title="Double-click to copy row">
             <td><span class="tool-name">${call.name}</span></td>
-            <td><div class="arguments">${escapeHtml(args)}</div></td>
+            <td><div class="arguments" ondblclick="copyText(filteredCalls[${rowIndex}].arguments ? JSON.stringify(filteredCalls[${rowIndex}].arguments, null, 2) : '-'); event.stopPropagation();">${escapeHtml(args)}</div></td>
             <td class="timestamp" title="${fullTime}">${timeStr}</td>
             <td class="model">${call.model || '-'}</td>
             <td class="session-id">${call.sessionId || '-'}</td>
@@ -850,7 +858,6 @@
     document.getElementById('session-filter').addEventListener('change', () => { currentPage = 1; applyFilters(); });
     document.getElementById('date-from').addEventListener('change', () => { currentPage = 1; applyFilters(); });
     document.getElementById('date-to').addEventListener('change', () => { currentPage = 1; applyFilters(); });
-    document.getElementById('sort-field').addEventListener('change', applyFilters);
     document.getElementById('per-page').addEventListener('change', () => { currentPage = 1; render(); });
 
     // Load data on start
